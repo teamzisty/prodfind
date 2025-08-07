@@ -5,36 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1753079777370,
-      "tag": "0000_complete_omega_flight",
+      "when": 1754212033517,
+      "tag": "0000_warm_omega_flight",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1753084665448,
-      "tag": "0001_right_thing",
-      "breakpoints": true
-    },
-    {
-      "idx": 2, 
-      "version": "7",
-      "when": 1753344056010,
-      "tag": "0002_absurd_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1753443133555,
-      "tag": "0004_good_lady_deathstrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1753443371182,
-      "tag": "0005_certain_sabretooth",
+      "when": 1754215179135,
+      "tag": "0001_crazy_iron_patriot",
       "breakpoints": true
     }
   ]

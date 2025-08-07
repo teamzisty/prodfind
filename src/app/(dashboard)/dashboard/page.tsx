@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Products } from "@/components/products/products";
 import { useAuth } from "@/context/auth-context";
 import {
   Card,
@@ -12,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import {
   BoxIcon,
-  CheckCircle2Icon,
   PlusIcon,
   TelescopeIcon,
 } from "lucide-react";

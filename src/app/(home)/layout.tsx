@@ -1,5 +1,11 @@
 import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
+import { SiteHeader } from "@/components/site-header";
+
+import { AppSidebar } from "@/components/app-sidebar"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
 
 export default function HomeLayout({
   children,
@@ -8,9 +14,16 @@ export default function HomeLayout({
 }>) {
   return (
     <>
-      <Header />
-      <main>{children}</main>
-      <Footer />
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col mt-10 md:mt-0">
+            <main>{children}</main>
+            <Footer />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </>
   );
 }

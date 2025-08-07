@@ -8,14 +8,11 @@ import { Loader2, UserPlusIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { SiGithub, SiGoogle } from "@icons-pack/react-simple-icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { auth, error: authError, isPending } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState("");
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +31,7 @@ export default function RegisterPage() {
     setError(null);
     try {
       const { error } = await auth.signUp.email({
-        name: name,
+        name: "",
         email: form.email,
         password: form.password,
       });

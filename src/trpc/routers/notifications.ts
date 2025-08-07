@@ -1,6 +1,6 @@
 import { createTRPCRouter, authedProcedure } from "@/trpc/init";
 import { db } from "@/lib/db";
-import { notifications, SAFE_USER_COLUMNS } from "@/lib/db/schema";
+import { notifications } from "@/lib/db/schema";
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 

@@ -4,6 +4,8 @@ import {
   LogInIcon,
   LogOutIcon,
   UserIcon,
+  MessageCircleIcon,
+  BookOpenIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,27 +46,63 @@ export default function UserMenu() {
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="max-w-64" align="end">
-          <DropdownMenuLabel className="flex min-w-0 flex-col">
-            <span className="text-foreground truncate text-sm font-medium">
-              Guest
-            </span>
-            <span className="text-muted-foreground truncate text-xs font-normal font-mono">
-              {uuid}
-            </span>
+        <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" align="end">
+          <DropdownMenuLabel className="p-0 font-normal">
+            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <Avatar>
+                <AvatarImage src="https://github.com/ghost.png" />
+                <AvatarFallback>
+                  <UserIcon
+                    size={16}
+                    className="text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">Guest</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {uuid}
+                </span>
+              </div>
+            </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link href="/login">
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <Link className="flex items-center gap-2 w-full" href="/" target="_blank" rel="noopener noreferrer">
+                <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+                  <HomeIcon />
+                  Home
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <Link className="flex items-center gap-2 w-full" href="https://docs.prodfind.space/" target="_blank" rel="noopener noreferrer">
+                <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+                  <BookOpenIcon />
+                  Docs
+                </DropdownMenuItem>
+              </Link>
+              <Link className="flex items-center gap-2 w-full" href="https://discord.gg/teamzisty" target="_blank" rel="noopener noreferrer">
+                <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+                  <MessageCircleIcon />
+                  <span className="flex items-center">Discord Server</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <Link className="flex items-center gap-2 w-full" href="/login">
+              <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
                 <LogInIcon
                   size={16}
                   className="text-muted-foreground"
                   aria-hidden="true"
                 />
                 <span>Login</span>
-              </Link>
-            </DropdownMenuItem>
+              </DropdownMenuItem>
+            </Link>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -96,41 +134,67 @@ export default function UserMenu() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="max-w-64" align="end">
-        <DropdownMenuLabel className="flex min-w-0 flex-col">
-          <span className="text-foreground truncate text-sm font-medium">
-            {session.user.name ? session.user.name : "Anonymous"}
-          </span>
-          <span className="text-muted-foreground truncate text-xs font-normal">
-            {session.user.email}
-          </span>
+      <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" align="end">
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <Avatar>
+              <AvatarImage
+                src={session.user.image ?? undefined}
+                alt="Profile image"
+              />
+              <AvatarFallback>
+                {session.user.name ? session.user.name.charAt(0) : "A"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{session.user.name ? session.user.name : "Anonymous"}</span>
+              <span className="text-muted-foreground truncate text-xs">
+                {session.user.email}
+              </span>
+            </div>
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/">
-              <HomeIcon size={16} className="opacity-60" aria-hidden="true" />
-              <span>Home</span>
-            </Link>
-          </DropdownMenuItem>
+          <Link className="flex items-center gap-2 w-full" href="/" target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+              <HomeIcon />
+              Home
+            </DropdownMenuItem>
+          </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/account">
+          <Link className="flex items-center gap-2 w-full" href="/account" target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
               <UserIcon size={16} className="opacity-60" aria-hidden="true" />
               <span>Account</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard">
+            </DropdownMenuItem>
+          </Link>
+          <Link className="flex items-center gap-2 w-full" href="/dashboard" target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
               <BoltIcon size={16} className="opacity-60" aria-hidden="true" />
               <span>Dashboard</span>
-            </Link>
-          </DropdownMenuItem>
+            </DropdownMenuItem>
+          </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuGroup>
+          <Link className="flex items-center gap-2 w-full" href="https://docs.prodfind.space/" target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+              <BookOpenIcon />
+              Docs
+            </DropdownMenuItem>
+          </Link>
+          <Link className="flex items-center gap-2 w-full" href="https://discord.gg/teamzisty" target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="flex items-center gap-2 w-full cursor-pointer">
+              <MessageCircleIcon />
+              <span className="flex items-center">Discord Server</span>
+            </DropdownMenuItem>
+          </Link>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOutIcon size={16} className="opacity-60" aria-hidden="true" />
           <span>Logout</span>
         </DropdownMenuItem>

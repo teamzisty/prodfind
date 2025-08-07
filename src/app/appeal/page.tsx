@@ -52,7 +52,7 @@ export default function AppealPage() {
         router.replace("/dashboard");
       }
     }
-  }, [notifications, notificationId]);
+  }, [notifications, notificationId, router]);
 
   if (!session && !isPending) {
     router.replace("/login");

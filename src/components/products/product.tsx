@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { CalendarRange, DollarSign, RefreshCcw, Heart } from "lucide-react";
+import { ArrowUpRight, CalendarRange, DollarSign, RefreshCcw, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import {
@@ -19,6 +19,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function Product({ product }: { product: ProductType | null }) {
   const [isClient, setIsClient] = useState(false);
@@ -89,7 +100,7 @@ export function Product({ product }: { product: ProductType | null }) {
                   <div className="flex items-center gap-1">
                     <CalendarRange size="18" />
                     <span className="text-sm">
-                      {isClient 
+                      {isClient
                         ? new Date(product.createdAt).toLocaleDateString()
                         : new Date(product.createdAt).toISOString().split('T')[0]
                       }
@@ -108,7 +119,7 @@ export function Product({ product }: { product: ProductType | null }) {
                   <div className="flex items-center gap-1">
                     <RefreshCcw size="18" />
                     <span className="text-sm">
-                      {isClient 
+                      {isClient
                         ? new Date(product.updatedAt).toLocaleDateString()
                         : new Date(product.updatedAt).toISOString().split('T')[0]
                       }
@@ -124,18 +135,32 @@ export function Product({ product }: { product: ProductType | null }) {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col md:flex-row gap-2 items-center">
-        <Button variant="outline" className="w-full md:max-w-1/2" asChild>
+        <Button variant="outline" className="w-full md:flex-1" asChild>
           <Link href={`/product/${product.id}`}>View Details</Link>
         </Button>
         {product.links && product.links.length > 0 && (
-          <Button asChild className="w-full md:max-w-1/2">
-            <Link href={product.links[0].url.toString()} target="_blank">
-              Play
-            </Link>
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="w-full md:flex-1 cursor-pointer">
+                Play
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Do you want to play?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The page you are being redirected to is not related to Prodfind. Do you still want to proceed?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back</AlertDialogCancel>
+                <AlertDialogAction><Link className="flex items-center" href={product.links[0].url.toString()} target="_blank">Redirect <ArrowUpRight /></Link></AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
         {(!product.links || product.links.length === 0) && (
-          <Button variant="outline" className="w-full md:max-w-1/2" disabled>
+          <Button variant="outline" className="w-full md:flex-1" disabled>
             Not available
           </Button>
         )}

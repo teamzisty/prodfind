@@ -40,7 +40,7 @@ export function Footer() {
             Contact
           </Link>
           <a
-            href="https://github.com/prodfind"
+            href="https://github.com/teamzisty/prodfind"
             target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-foreground transition-colors text-sm"

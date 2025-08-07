@@ -48,7 +48,8 @@ export const LinkIcon = ({
       if (!Icon) {
         Icon = Globe;
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error(error);
       Icon = LinkIconLucide;
     }
   } else if (!Icon) {

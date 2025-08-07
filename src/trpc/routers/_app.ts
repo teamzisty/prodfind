@@ -1,7 +1,7 @@
-import { z } from 'zod'
-import { authedProcedure, baseProcedure, createTRPCRouter } from '@/trpc/init'
-import { db } from '@/lib/db';
-import { eq, sql, desc, getTableColumns, and, isNull, SQL } from 'drizzle-orm';
+import { z } from "zod";
+import { authedProcedure, baseProcedure, createTRPCRouter } from "@/trpc/init";
+import { db } from "@/lib/db";
+import { eq, sql, desc, getTableColumns, and, isNull, SQL } from "drizzle-orm";
 import {
   products as productsTable,
   users as usersTable,
@@ -9,20 +9,21 @@ import {
   recommendations as recommendationsTable,
   notifications as notificationsTable,
   SAFE_USER_COLUMNS,
-} from '@/lib/db/schema';
+} from "@/lib/db/schema";
 import {
   ProductSchema,
-  ProductWithAuthor,
   ProductLinkSchema,
   ProductImageSchema,
-} from '@/types/product';
-import { checkBotId } from 'botid/server';
-import { sessionRouter } from './session';
-import { notificationsRouter } from './notifications';
-import { TRPCError } from '@trpc/server';
-import { usersRouter } from './users';
-import { contactRouter } from './contact';
-import { SafeUser } from '@/types/user';
+  ProductVisibilitySchema,
+} from "@/types/product";
+import { checkBotId } from "botid/server";
+import { sessionRouter } from "./session";
+import { notificationsRouter } from "./notifications";
+import { TRPCError } from "@trpc/server";
+import { usersRouter } from "./users";
+import { contactRouter } from "./contact";
+import { commentsRouter } from "./comments";
+import { SafeUser } from "@/types/user";
 
 const CreateProductSchema = ProductSchema.omit({
   id: true,
@@ -34,7 +35,9 @@ const CreateProductSchema = ProductSchema.omit({
 const recommendationCountsSubquery = db
   .select({
     productId: recommendationsTable.productId,
-    count: sql<number>`count(${recommendationsTable.id})`.mapWith(Number).as("count"),
+    count: sql<number>`count(${recommendationsTable.id})`
+      .mapWith(Number)
+      .as("count"),
   })
   .from(recommendationsTable)
   .groupBy(recommendationsTable.productId)
@@ -48,6 +51,7 @@ export const appRouter = createTRPCRouter({
   session: sessionRouter,
   notifications: notificationsRouter,
   contact: contactRouter,
+  comments: commentsRouter,
   /**
    * Get products
    */
@@ -55,9 +59,9 @@ export const appRouter = createTRPCRouter({
     .input(
       z.object({
         userId: z.string().optional(),
-      })
+      }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       let qb = db
         .select({
           ...getTableColumns(productsTable),
@@ -66,80 +70,114 @@ export const appRouter = createTRPCRouter({
         .from(productsTable)
         .leftJoin(
           recommendationCountsSubquery,
-          eq(productsTable.id, recommendationCountsSubquery.productId)
+          eq(productsTable.id, recommendationCountsSubquery.productId),
         )
         .$dynamic();
 
-      // Only show non-deleted products
-      let whereConditions = isNull(productsTable.deletedAt) as SQL<unknown> | undefined;
-      
+      // Build where conditions
+      const whereConditions: SQL<unknown>[] = [isNull(productsTable.deletedAt)];
+
       if (input.userId) {
-        whereConditions = and(whereConditions, eq(productsTable.authorId, input.userId));
+        whereConditions.push(eq(productsTable.authorId, input.userId));
+      } else {
+        // If not viewing a specific user's products, filter by visibility
+        if (ctx.session?.user?.id) {
+          // Logged in users can see public, unlisted, and their own private products
+          whereConditions.push(
+            sql`(${productsTable.visibility} = 'public' OR ${productsTable.visibility} = 'unlisted' OR (${productsTable.visibility} = 'private' AND ${productsTable.authorId} = ${ctx.session.user.id}))`,
+          );
+        } else {
+          // Non-logged in users can only see public products
+          whereConditions.push(eq(productsTable.visibility, "public"));
+        }
       }
-      
-      qb = qb.where(whereConditions as SQL<unknown>);
+
+      qb = qb.where(and(...whereConditions));
 
       const products = await qb.orderBy(desc(productsTable.createdAt));
 
-      return products.map((p) => ({
-        ...p,
-        recommendationCount: p.recommendationCount || 0,
-      })).sort((a, b) => (b.recommendationCount || 0) - (a.recommendationCount || 0));
+
+      return products
+        .map((p) => ({
+          ...p,
+          recommendationCount: p.recommendationCount || 0,
+        }))
+        .sort(
+          (a, b) => (b.recommendationCount || 0) - (a.recommendationCount || 0),
+        );
     }),
   /**
    * Create product
    */
-  createProduct: authedProcedure.input(CreateProductSchema).mutation(async ({ ctx, input }) => {
-    const verification = await checkBotId();
+  createProduct: authedProcedure
+    .input(CreateProductSchema)
+    .mutation(async ({ ctx, input }) => {
+      const verification = await checkBotId();
 
-    if (verification.isBot) {
-      throw new TRPCError({ code: "UNAUTHORIZED" })
-    }
-    const product = await db.insert(productsTable).values({
-      ...input,
-      authorId: ctx.session?.user?.id ?? "unknown",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    return product;
-  }),
+      if (verification.isBot) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      const product = await db.insert(productsTable).values({
+        ...input,
+        authorId: ctx.session?.user?.id ?? "unknown",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return product;
+    }),
   /**
    * Get single product by ID
    */
-  getProduct: baseProcedure.input(z.object({
-    productId: z.string(),
-  })).query(async ({ input }) => {
-    const product = await db.select()
-      .from(productsTable)
-      .where(and(
-        eq(productsTable.id, input.productId),
-        isNull(productsTable.deletedAt)
-      ))
-      .limit(1);
+  getProduct: baseProcedure
+    .input(
+      z.object({
+        productId: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const product = await db
+        .select()
+        .from(productsTable)
+        .where(
+          and(
+            eq(productsTable.id, input.productId),
+            isNull(productsTable.deletedAt),
+          ),
+        )
+        .limit(1);
 
-    if (!product[0]) {
-      throw new Error("Product not found");
-    }
+      if (!product[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+      }
 
-    const productData = product[0];
+      const productData = product[0];
 
-    const author = await db.select(SAFE_USER_COLUMNS)
-      .from(usersTable)
-      .where(eq(usersTable.id, productData.authorId));
+      // Check visibility permissions
+      if (
+        productData.visibility === "private" &&
+        productData.authorId !== ctx.session?.user?.id
+      ) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+      }
 
-    const recommendationCount = await db
-      .select({
-        count: sql<number>`count(${recommendationsTable.id})`.mapWith(Number),
-      })
-      .from(recommendationsTable)
-      .where(eq(recommendationsTable.productId, input.productId));
+      const author = await db
+        .select(SAFE_USER_COLUMNS)
+        .from(usersTable)
+        .where(eq(usersTable.id, productData.authorId));
 
-    return {
-      ...productData,
-      author: author[0] as unknown as SafeUser,
-      recommendationCount: recommendationCount[0]?.count || 0,
-    };
-  }),
+      const recommendationCount = await db
+        .select({
+          count: sql<number>`count(${recommendationsTable.id})`.mapWith(Number),
+        })
+        .from(recommendationsTable)
+        .where(eq(recommendationsTable.productId, input.productId));
+
+      return {
+        ...productData,
+        author: author[0] as unknown as SafeUser,
+        recommendationCount: recommendationCount[0]?.count || 0,
+      };
+    }),
   /**
    * Update product
    */
@@ -155,26 +193,28 @@ export const appRouter = createTRPCRouter({
         links: z.array(ProductLinkSchema.omit({ id: true })).optional(),
         images: z.array(ProductImageSchema.omit({ id: true })).optional(),
         license: z.string().optional(),
-      })
+        visibility: ProductVisibilitySchema.optional(),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const verification = await checkBotId();
 
       if (verification.isBot) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       if (!ctx.session?.user?.id) {
         throw new Error("Unauthorized - no session");
       }
 
-      const product = await db.select()
+      const product = await db
+        .select()
         .from(productsTable)
         .where(eq(productsTable.id, input.productId))
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (product[0].authorId !== ctx.session.user.id) {
@@ -183,10 +223,11 @@ export const appRouter = createTRPCRouter({
 
       const { productId, ...updateData } = input;
 
-      await db.update(productsTable)
+      await db
+        .update(productsTable)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(productsTable.id, productId));
 
@@ -199,7 +240,7 @@ export const appRouter = createTRPCRouter({
     .input(z.object({ productId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       const product = await db
@@ -209,14 +250,16 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (product[0].authorId !== ctx.session.user.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      await db.delete(productsTable).where(eq(productsTable.id, input.productId));
+      await db
+        .delete(productsTable)
+        .where(eq(productsTable.id, input.productId));
 
       return { success: true };
     }),
@@ -225,13 +268,15 @@ export const appRouter = createTRPCRouter({
    * Admin delete product (for ToS violations)
    */
   adminDeleteProduct: authedProcedure
-    .input(z.object({ 
-      productId: z.string(),
-      reason: z.string().default("Violates Terms of Service")
-    }))
+    .input(
+      z.object({
+        productId: z.string(),
+        reason: z.string().default("Violates Terms of Service"),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       // Check if user has admin role
@@ -241,8 +286,11 @@ export const appRouter = createTRPCRouter({
         .where(eq(usersTable.id, ctx.session.user.id))
         .limit(1);
 
-      if (!user[0] || user[0].role !== 'admin') {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" })
+      if (!user[0] || user[0].role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admin access required",
+        });
       }
 
       const product = await db
@@ -252,7 +300,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       // Create notification for the product author
@@ -266,17 +314,18 @@ export const appRouter = createTRPCRouter({
         metadata: JSON.stringify({
           productName: product[0].name,
           reason: input.reason,
-          canAppeal: true
+          canAppeal: true,
         }),
       });
 
       // Soft delete the product
-      await db.update(productsTable)
+      await db
+        .update(productsTable)
         .set({
           deletedAt: new Date(),
           deletedBy: ctx.session.user.id,
           deletionReason: input.reason,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(productsTable.id, input.productId));
 
@@ -287,12 +336,14 @@ export const appRouter = createTRPCRouter({
    * Admin restore product (approve appeal)
    */
   adminRestoreProduct: authedProcedure
-    .input(z.object({ 
-      productId: z.string() 
-    }))
+    .input(
+      z.object({
+        productId: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       // Check if user has admin role
@@ -302,8 +353,11 @@ export const appRouter = createTRPCRouter({
         .where(eq(usersTable.id, ctx.session.user.id))
         .limit(1);
 
-      if (!user[0] || user[0].role !== 'admin') {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" })
+      if (!user[0] || user[0].role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admin access required",
+        });
       }
 
       const product = await db
@@ -313,7 +367,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (!product[0].deletedAt) {
@@ -321,12 +375,13 @@ export const appRouter = createTRPCRouter({
       }
 
       // Restore the product
-      await db.update(productsTable)
+      await db
+        .update(productsTable)
         .set({
           deletedAt: null,
           deletedBy: null,
           deletionReason: null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(productsTable.id, input.productId));
 
@@ -340,7 +395,8 @@ export const appRouter = createTRPCRouter({
         actorId: ctx.session.user.id,
         metadata: JSON.stringify({
           productName: product[0].name,
-          message: "Your appeal was approved and your product has been restored"
+          message:
+            "Your appeal was approved and your product has been restored",
         }),
       });
 
@@ -351,13 +407,15 @@ export const appRouter = createTRPCRouter({
    * Admin reject appeal
    */
   adminRejectAppeal: authedProcedure
-    .input(z.object({ 
-      notificationId: z.string(),
-      rejectionReason: z.string().optional()
-    }))
+    .input(
+      z.object({
+        notificationId: z.string(),
+        rejectionReason: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       // Check if user has admin role
@@ -367,8 +425,11 @@ export const appRouter = createTRPCRouter({
         .where(eq(usersTable.id, ctx.session.user.id))
         .limit(1);
 
-      if (!user[0] || user[0].role !== 'admin') {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" })
+      if (!user[0] || user[0].role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Admin access required",
+        });
       }
 
       const notification = await db
@@ -381,7 +442,9 @@ export const appRouter = createTRPCRouter({
         throw new Error("Notification not found");
       }
 
-      const metadata = notification[0].metadata ? JSON.parse(notification[0].metadata) : {};
+      const metadata = notification[0].metadata
+        ? JSON.parse(notification[0].metadata)
+        : {};
 
       await db.insert(notificationsTable).values({
         userId: notification[0].userId,
@@ -392,7 +455,7 @@ export const appRouter = createTRPCRouter({
         actorId: ctx.session.user.id,
         metadata: JSON.stringify({
           productName: metadata.productName,
-          message: "Your appeal was reviewed and rejected"
+          message: "Your appeal was reviewed and rejected",
         }),
       });
 
@@ -403,10 +466,11 @@ export const appRouter = createTRPCRouter({
           metadata: JSON.stringify({
             ...metadata,
             appealRejected: true,
-            rejectionReason: input.rejectionReason || "Appeal was reviewed and rejected",
+            rejectionReason:
+              input.rejectionReason || "Appeal was reviewed and rejected",
             rejectedBy: ctx.session.user.id,
-            rejectedAt: new Date().toISOString()
-          })
+            rejectedAt: new Date().toISOString(),
+          }),
         })
         .where(eq(notificationsTable.id, input.notificationId));
 
@@ -418,7 +482,7 @@ export const appRouter = createTRPCRouter({
    */
   getAppealedProducts: authedProcedure.query(async ({ ctx }) => {
     if (!ctx.session?.user?.id) {
-      throw new TRPCError({ code: "UNAUTHORIZED" })
+      throw new TRPCError({ code: "UNAUTHORIZED" });
     }
 
     // Check if user has admin role
@@ -428,8 +492,11 @@ export const appRouter = createTRPCRouter({
       .where(eq(usersTable.id, ctx.session.user.id))
       .limit(1);
 
-    if (!user[0] || user[0].role !== 'admin') {
-      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" })
+    if (!user[0] || user[0].role !== "admin") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Admin access required",
+      });
     }
 
     // Get notifications where products were removed and appeals were submitted
@@ -442,7 +509,7 @@ export const appRouter = createTRPCRouter({
           image: usersTable.image,
           createdAt: usersTable.createdAt,
         },
-        product: productsTable
+        product: productsTable,
       })
       .from(notificationsTable)
       .leftJoin(usersTable, eq(notificationsTable.userId, usersTable.id))
@@ -452,22 +519,24 @@ export const appRouter = createTRPCRouter({
 
     // Filter for appeals that have been submitted
     return appealedNotifications
-      .map(item => {
-        const metadata = item.notification.metadata ? JSON.parse(item.notification.metadata) : {};
+      .map((item) => {
+        const metadata = item.notification.metadata
+          ? JSON.parse(item.notification.metadata)
+          : {};
         return {
           ...item,
           metadata,
-          hasAppeal: !!metadata.appealed
+          hasAppeal: !!metadata.appealed,
         };
       })
-      .filter(item => item.hasAppeal);
+      .filter((item) => item.hasAppeal);
   }),
 
   addBookmark: baseProcedure
     .input(z.object({ productId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       await db.insert(bookmarksTable).values({
         productId: input.productId,
@@ -500,15 +569,15 @@ export const appRouter = createTRPCRouter({
     .input(z.object({ productId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       await db
         .delete(bookmarksTable)
         .where(
           and(
             eq(bookmarksTable.productId, input.productId),
-            eq(bookmarksTable.userId, ctx.session.user.id)
-          )
+            eq(bookmarksTable.userId, ctx.session.user.id),
+          ),
         );
       return { success: true };
     }),
@@ -525,8 +594,8 @@ export const appRouter = createTRPCRouter({
         .where(
           and(
             eq(bookmarksTable.productId, input.productId),
-            eq(bookmarksTable.userId, ctx.session.user.id)
-          )
+            eq(bookmarksTable.userId, ctx.session.user.id),
+          ),
         )
         .limit(1);
       return { isBookmarked: !!bookmark[0] };
@@ -536,7 +605,7 @@ export const appRouter = createTRPCRouter({
     .input(z.object({ productId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       await db.insert(recommendationsTable).values({
         productId: input.productId,
@@ -569,15 +638,15 @@ export const appRouter = createTRPCRouter({
     .input(z.object({ productId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       await db
         .delete(recommendationsTable)
         .where(
           and(
             eq(recommendationsTable.productId, input.productId),
-            eq(recommendationsTable.userId, ctx.session.user.id)
-          )
+            eq(recommendationsTable.userId, ctx.session.user.id),
+          ),
         );
       return { success: true };
     }),
@@ -594,8 +663,8 @@ export const appRouter = createTRPCRouter({
         .where(
           and(
             eq(recommendationsTable.productId, input.productId),
-            eq(recommendationsTable.userId, ctx.session.user.id)
-          )
+            eq(recommendationsTable.userId, ctx.session.user.id),
+          ),
         )
         .limit(1);
       return { isRecommended: !!recommendation[0] };
@@ -615,7 +684,7 @@ export const appRouter = createTRPCRouter({
       .leftJoin(productsTable, eq(bookmarksTable.productId, productsTable.id))
       .leftJoin(
         recommendationCountsSubquery,
-        eq(productsTable.id, recommendationCountsSubquery.productId)
+        eq(productsTable.id, recommendationCountsSubquery.productId),
       )
       .where(eq(bookmarksTable.userId, ctx.session.user.id));
 
@@ -640,11 +709,11 @@ export const appRouter = createTRPCRouter({
       .from(recommendationsTable)
       .leftJoin(
         productsTable,
-        eq(recommendationsTable.productId, productsTable.id)
+        eq(recommendationsTable.productId, productsTable.id),
       )
       .leftJoin(
         recommendationCountsSubquery,
-        eq(productsTable.id, recommendationCountsSubquery.productId)
+        eq(productsTable.id, recommendationCountsSubquery.productId),
       )
       .where(eq(recommendationsTable.userId, ctx.session.user.id));
 

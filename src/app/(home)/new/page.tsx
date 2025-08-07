@@ -1,27 +1,28 @@
 import { Suspense } from "react"
-import { Products } from "@/components/products/products"
+import { New } from "@/components/products/products"
 import { Skeleton } from "@/components/ui/skeleton"
 import { trpc } from "@/trpc/server";
 import { Products as ProductsType } from "@/types/product";
 import { Metadata } from "next";
+import { Badge } from "@/components/ui/badge"
+import { FlaskConical, TriangleAlert } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Explore Products - Prodfind",
-  description: "Discover and explore the latest products",
+  title: "New - Prodfind",
+  description: "Let's find the most popular products",
 };
 
 export default async function ExplorePage() {
   const products = await trpc.getProducts({}) as ProductsType;
-
+  
   return (
-    <div className="py-16 mx-auto container">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Explore Products</h1>
-        <p className="mt-2 text-muted-foreground">
-          Discover and explore the latest products from creators around the world.
-        </p>
+    <div className="container mx-auto py-10 px-5">
+      <div className="flex flex-col gap-1 pb-11">
+        <h1 className="text-3xl font-semibold">Let's find newly launched products!</h1>
+        <p className="text-neutral-400">These are products that have just been released on Prodfind.</p>
+        <div className="flex items-center gap-x-2 mt-2"><Badge className="px-2 py-1" variant="outline"><FlaskConical /> Beta</Badge> <Badge className="px-2 py-1" variant="outline"><TriangleAlert /> Developing Feature</Badge></div>
       </div>
-      
+
       <Suspense fallback={
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array(6).fill(0).map((_, i) => (
@@ -33,8 +34,8 @@ export default async function ExplorePage() {
           ))}
         </div>
       }>
-        <Products initialProducts={products} autoFocus />
+        <New initialProducts={products} autoFocus />
       </Suspense>
-    </div>
+    </div >
   )
 }

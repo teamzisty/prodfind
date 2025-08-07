@@ -145,7 +145,7 @@ export default function LoginPage() {
             )}
             <Button
               type="submit"
-              className="w-full flex items-center gap-2"
+              className="w-full flex items-center gap-2 cursor-pointer"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -164,6 +164,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-2 mt-4">
             <Button
               variant="outline"
+              className="cursor-pointer"
               onClick={() => handleSocialLogin("google")}
             >
               <SiGoogle size={18} />
@@ -171,6 +172,7 @@ export default function LoginPage() {
             </Button>
             <Button
               variant="outline"
+              className="cursor-pointer"
               onClick={() => handleSocialLogin("github")}
             >
               <SiGithub size={18} />

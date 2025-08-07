@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useUploadThing } from "@/lib/uploadthing";
 import { Edit, Save, X, Trash2 } from "lucide-react";
-import { ProductWithAuthor } from "@/types/product";
+import { ProductWithAuthor, ProductVisibilitySchema } from "@/types/product";
 import {
   Select,
   SelectContent,
@@ -58,6 +58,7 @@ export function ProductEdit({
     images: product.images || [],
     icon: product.icon || "",
     license: product.license || "",
+    visibility: product.visibility || "public",
   });
 
   const { startUpload: startIconUpload, isUploading: isIconUploading } =
@@ -328,7 +329,9 @@ export function ProductEdit({
 
       {/* Description Edit */}
       <div className="mt-8">
-        <h2 className="text-2xl font-semibold mb-4">About this product (Supports Markdown)</h2>
+        <h2 className="text-2xl font-semibold mb-4">
+          About this product (Supports Markdown)
+        </h2>
         <Textarea
           value={editForm.description}
           onChange={(e) =>
@@ -449,6 +452,31 @@ export function ProductEdit({
             <SelectItem value="Closed">Closed</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Visibility Edit */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold mb-4">Visibility</h2>
+        <Select
+          value={editForm.visibility}
+          onValueChange={(value) =>
+            setEditForm((prev) => ({ ...prev, visibility: value as any }))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select visibility" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="public">Public</SelectItem>
+            <SelectItem value="unlisted">Unlisted</SelectItem>
+            <SelectItem value="private">Private</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-muted-foreground mt-2">
+          Public: Visible to everyone. <br />
+          Unlisted: Only accessible via direct link. <br />
+          Private: Only visible to you.
+        </p>
       </div>
 
       {/* Delete Product */}

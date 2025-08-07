@@ -39,7 +39,6 @@ function Dot({ className }: { className?: string }) {
 export default function NotificationMenu() {
   const utils = trpc.useUtils();
   const { session } = useAuth();
-  const router = useRouter();
 
   const {
     data: notifications,
@@ -190,8 +189,6 @@ export default function NotificationMenu() {
             ? JSON.parse(notification.metadata)
             : {};
           const isProductRemoval = notification.action === "product_removed";
-          const canAppeal =
-            isProductRemoval && metadata.canAppeal && !metadata.appealed;
 
           return (
             <div

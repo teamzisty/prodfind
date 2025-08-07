@@ -9,7 +9,7 @@ export const usersRouter = createTRPCRouter({
      */
     addPassword: baseProcedure
         .input(z.object({ password: z.string() }))
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ input }) => {
             try {
                 const { password } = input;
 

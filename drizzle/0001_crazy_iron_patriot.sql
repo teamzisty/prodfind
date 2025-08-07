@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "visibility" text DEFAULT 'public' NOT NULL;
