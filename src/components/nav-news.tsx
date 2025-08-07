@@ -14,7 +14,7 @@ export function NavNews() {
             <CardContent>
                 <h1 className="pb-2 text-lg font-semibold">A fastest way to find <span className="text-primary">Products</span></h1>
                 <p className="text-sm text-neutral-400">Let's find the best products together!</p>
-                <Link href="/login">
+                <Link href="/register">
                     <Button className="w-full mt-4" variant="outline"><Binoculars /> Join early access</Button>
                 </Link>
             </CardContent>
