@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import {
     Search,
@@ -30,6 +31,13 @@ import {
 
 export function NavSearch() {
     const [open, setOpen] = useState(false)
+    const router = useRouter()
+    
+    const handleItemClick = (url: string, disabled?: boolean) => {
+        if (disabled) return
+        setOpen(false)
+        router.push(url)
+    }
 
     const commandGroups: Array<{
         heading?: string;
@@ -43,7 +51,6 @@ export function NavSearch() {
             {
                 items: [
                     { icon: House, label: "Home", url: "/" },
-                    { icon: Search, label: "Search", url: "/search" },
                     { icon: Trophy, label: "Ranking", url: "/ranking" },
                     { icon: PackagePlus, label: "New Products", url: "/new" },
                     { icon: Sparkles, label: "Recommended", url: "/explore", disabled: true },
@@ -92,9 +99,10 @@ export function NavSearch() {
                             <CommandGroup className="py-2!" heading={group.heading}>
                                 {group.items.map((item) => (
                                     <CommandItem
-                                        className={`py-2! ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className={`py-2! hover:cursor-pointer ${item.disabled ? 'opacity-50 cursor-not-allowed hover:cursor-not-allowed' : ''}`}
                                         key={item.label}
                                         disabled={!!item.disabled}
+                                        onSelect={() => handleItemClick(item.url, item.disabled)}
                                     >
                                         <item.icon className="mr-2 h-4 w-4" />
                                         <span>{item.label}</span>
