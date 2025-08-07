@@ -97,7 +97,7 @@ export const appRouter = createTRPCRouter({
       const products = await qb.orderBy(desc(productsTable.createdAt));
 
 
-      return products.filter((p) => p.visibility == "public")
+      return products
         .map((p) => ({
           ...p,
           recommendationCount: p.recommendationCount || 0,
@@ -147,7 +147,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       const productData = product[0];
@@ -157,7 +157,7 @@ export const appRouter = createTRPCRouter({
         productData.visibility === "private" &&
         productData.authorId !== ctx.session?.user?.id
       ) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       const author = await db
@@ -214,7 +214,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (product[0].authorId !== ctx.session.user.id) {
@@ -250,7 +250,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (product[0].authorId !== ctx.session.user.id) {
@@ -300,7 +300,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       // Create notification for the product author
@@ -367,7 +367,7 @@ export const appRouter = createTRPCRouter({
         .limit(1);
 
       if (!product[0]) {
-        throw new Error("Product not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
       }
 
       if (!product[0].deletedAt) {

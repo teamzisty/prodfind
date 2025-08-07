@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { trpc } from "@/trpc/server";
+import { TRPCError } from "@trpc/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -32,6 +33,9 @@ export async function GET(request: Request) {
       {
         width: 1200,
         height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
       },
     );
   }
@@ -41,12 +45,14 @@ export async function GET(request: Request) {
     const product = await trpc.getProduct({ productId });
 
     if (!product) {
-      throw new Error("Product not found");
+      throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
     }
 
-    const images = product.images as any;
+    const images = product.images;
     const firstImage =
-      Array.isArray(images) && images.length > 0 ? images[0].url : null;
+      images && Array.isArray(images) && images.length > 0 && images[0]?.url
+        ? images[0].url
+        : null;
 
     return new ImageResponse(
       (
@@ -186,6 +192,9 @@ export async function GET(request: Request) {
       {
         width: 1200,
         height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
       },
     );
   } catch (error) {
@@ -215,6 +224,9 @@ export async function GET(request: Request) {
       {
         width: 1200,
         height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
       },
     );
   }
