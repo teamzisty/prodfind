@@ -24,7 +24,7 @@ import Link from "next/link";
 // Navigation links array to be used in both desktop and mobile menus
 const navigationLinks = [
   { href: "/", label: "Home" },
-  { href: "/explore", label: "Explore" },
+  { href: "/ranking", label: "Explore" },
 ];
 
 export default function Header() {

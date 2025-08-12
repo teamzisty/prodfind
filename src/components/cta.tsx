@@ -17,7 +17,7 @@ export function CTA() {
               <Link href="/register">Register</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/explore">Explore</Link>
+              <Link href="/ranking">Explore</Link>
             </Button>
           </div>
         </div>

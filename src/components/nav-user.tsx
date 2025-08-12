@@ -2,14 +2,12 @@
 
 import {
     BoltIcon,
-    HomeIcon,
     LogInIcon,
     LogOutIcon,
     UserIcon,
     MessageCircleIcon,
     BookOpenIcon,
 } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,

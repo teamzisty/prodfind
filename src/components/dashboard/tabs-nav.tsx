@@ -14,7 +14,7 @@ const navLinks = [
     label: "Recommendations",
     href: "/dashboard/recommendations",
   },
-  { value: "explore", label: "Explore", href: "/dashboard/explore" },
+  { value: "explore", label: "Explore", href: "/dashboard/ranking" },
   { value: "admin", label: "Admin", href: "/admin", isAdmin: true },
 ];
 

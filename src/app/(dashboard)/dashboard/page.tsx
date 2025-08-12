@@ -75,7 +75,7 @@ export default function DashboardPage() {
             </CardContent>
             <CardFooter>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/explore">
+                <Link href="/ranking">
                   <PlusIcon className="w-4 h-4" />
                   Explore products
                 </Link>
