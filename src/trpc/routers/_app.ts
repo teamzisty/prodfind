@@ -16,7 +16,6 @@ import {
   ProductImageSchema,
   ProductVisibilitySchema,
 } from "@/types/product";
-import { checkBotId } from "botid/server";
 import { sessionRouter } from "./session";
 import { notificationsRouter } from "./notifications";
 import { TRPCError } from "@trpc/server";
@@ -112,11 +111,6 @@ export const appRouter = createTRPCRouter({
   createProduct: authedProcedure
     .input(CreateProductSchema)
     .mutation(async ({ ctx, input }) => {
-      const verification = await checkBotId();
-
-      if (verification.isBot) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
       const product = await db.insert(productsTable).values({
         ...input,
         authorId: ctx.session?.user?.id ?? "unknown",
@@ -197,12 +191,6 @@ export const appRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const verification = await checkBotId();
-
-      if (verification.isBot) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
       if (!ctx.session?.user?.id) {
         throw new Error("Unauthorized - no session");
       }

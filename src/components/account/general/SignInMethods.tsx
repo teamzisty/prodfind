@@ -98,7 +98,7 @@ export function SignInMethods({ user }: Props) {
                 {isPending
                   ? "Disconnecting..."
                   : user.accounts.length === 1
-                    ? "Cannot disable"
+                    ? "Cannot disable last method"
                     : "Disable"}
               </Button>
             ) : (
@@ -133,7 +133,7 @@ export function SignInMethods({ user }: Props) {
                 {isPending
                   ? "Disconnecting..."
                   : user.accounts.length === 1
-                    ? "Cannot disable"
+                    ? "Cannot disable last method"
                     : "Disable"}
               </Button>
             ) : (
@@ -142,11 +142,7 @@ export function SignInMethods({ user }: Props) {
                 onClick={() => handleConnect("google")}
                 disabled={isPending}
               >
-                {isPending
-                  ? "Connecting..."
-                  : user.accounts.length === 1
-                    ? "Cannot connect last method"
-                    : "Connect"}
+                {isPending ? "Connecting..." : "Connect"}
               </Button>
             )}
           </div>
@@ -169,7 +165,7 @@ export function SignInMethods({ user }: Props) {
                 onClick={() => handleDisconnect("github")}
                 disabled={isPending || user.accounts.length === 1}
               >
-                {isPending ? "Disconnecting..." : "Disable"}
+                {isPending ? "Disconnecting..." : user.accounts.length === 1 ? "Cannot disable last method" : "Disable"}
               </Button>
             ) : (
               <Button
